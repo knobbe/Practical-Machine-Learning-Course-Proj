@@ -1,0 +1,56 @@
+#Practical Machine Learning Course Project
+
+##Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+##Data Exploration and Cleaning
+```{r, warning=FALSE}
+library(AppliedPredictiveModeling)
+library(caret)
+library(randomForest)
+
+
+trainUrl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(url(trainUrl))
+testing <- read.csv(url(testUrl))
+
+training <- training[,8:160]
+testing <- testing[,8:160]
+training <- training[,colSums(is.na(training)) == 0]
+
+nzvCol <- nearZeroVar(training,saveMetrics=T)
+training <-training[,which(nzvCol$nzv=="FALSE")]
+
+set.seed(1)
+myTesting <- training[createDataPartition(y=training$classe, p=0.3, list=FALSE),]
+myTraining <- training[-createDataPartition(y=training$classe, p=0.3, list=FALSE),]
+```
+
+Steps of cleaning data include: 1) pull data from source, 2) remove columns with NA data, 3) remove first 7 columns that are irrelevant for prediction purposes, 4) removing columns with a near 0 variance, and 5) splitting the data up into test and training data.
+
+For data exploration, let's review the frequency distribution of the 'Classe' variable
+
+```{r}
+plot(training$classe,main="Frequency by Classe")
+```
+
+##Model Building
+A random forest classification tree model is being used for this factor based prediction.
+```{r}
+model <- randomForest(classe~.,data=myTraining,method="Class")
+predict <- predict(model,myTesting,type="class")
+confusionMatrix(predict,myTesting$classe)
+```
+
+
+Per the tables aboove, the model has accurately predicted 99.81% of all test data. The confidence interval is between (99.67%,99.91%). These results are very impressive and demonstrate a low sample error rate of .19% (1 - .9981).
+
+##Solution Submission
+```{r}
+predict_test <- predict(model,testing,type="class")
+predict_test
+```
+
+The string of characters above represent the classe of each data point. The prediction resulted in 100% accuracy.
